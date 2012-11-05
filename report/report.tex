@@ -1,0 +1,73 @@
+\documentclass[a4paper,11pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[brazil]{babel}
+\usepackage{hyperref}
+
+\title{Relatório do segundo exercício programa de MAC0431}
+\author{Giancarlo Rigo\\
+        Rafael Reggiani Manzo}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\begin{abstract}
+Para este exercício programa pretendemos implementar o algoritmo de integração numérica Runge-Kutta\footnote{PRESS, William H. et al. \textit{Numerical Recipes in C}}. Este é um algoritmo que dados uma equação diferencial e um ponto inicial, aproxima o valor da função objeto da equação diferencial. Quando são dados mais de um ponto inicial o método é paralelizável para cada um destes pontos que possuem resultados idenpendentes para o método.
+
+Este é o mesmo tema de nosso trabalho de conclusão de curso, onde já temos este método implementado em \textit{C++} com \textit{POSIX Threads}, \textit{CUDA} e \textit{OpenCL}\footnote{\href{https://github.com/rafamanzo/runge-kutta}{https://github.com/rafamanzo/runge-kutta}}.
+
+Uma das aplicações deste método, é a reconstrução de fibras do corpo humano a partir de imagens por difusão de tensores\footnote{DTI - Diffusion Tensor Images} por ressonância magnética. Neste contexto, estamos implementando o método em \textit{GPU} para possibilitar a reconstrução em tempo real e compará-la com a em \textit{CPU}.
+
+Assim, como este problema não possui dependência dos dados entre cada instância e envolve grandes quantidades de dados, parece ser bastante plausível para também ser implementado com o \textit{Apache Hadoop}. Além disto será mais uma informação complementar para utilizarmos como comparação em nossa monografia.
+\end{abstract}
+
+\chapter{Compilação e execução}
+
+\section{Ambiente}
+O software foi desenvolvido em Ubuntu 12.04 64bits para a versão 1.0.4 do hadoop.
+
+\section{Compilação}
+O \textit{jar} gerado pelo projeto, uma vez que este excede o limite de espaço (2MB) imposto pelo PACA, encontra-se disponível para download em:\\ \href{https://github.com/downloads/rafamanzo/runge-kutta-hadoop/tracer.jar}{https://github.com/downloads/rafamanzo/runge-kutta-hadoop/tracer.jar}.
+
+Também é possível gerar este arquivo através do script Ant encontrado na raiz do repositório deste projeto também (\href{https://github.com/rafamanzo/runge-kutta-hadoop}{https://github.com/rafamanzo/runge-kutta-hadoop}).
+
+Por fim, outra  opção é importar o projeto para a IDE Eclipse e lá exportá-lo.
+
+\section{Execução}
+Para executar o programa, são esperados quatro argumentos: arquivo com o campo vetorial de entrada; tamanho do passo; arquivo com a lista de pontos iniciais (onde o map será feito); arquivo de saída.
+
+Devendo ser da forma:
+
+\begin{verbatim}
+  hadoop -jar tracer.jar <field file> <step size>
+                         <initial points file> <trajectories file>
+\end{verbatim}
+
+\chapter{Implementação}
+A implementação foi dividida em dois pacotes. Um, vector, contendo abstrações para facilitar o trabalho com vetores em três dimensões. E outra, core, com as classes específicas para a execução no Hadoop.
+
+Além disto, dentro da pasta lib, foram disponibilizadas todas as bibliotecas necessárias para execução.
+
+\section{Map}
+Esta classe ficou extensa devido a implementação das funções auxiliares para o calculo das trajetórias de cada ponto inicial. A função map, para cada ponto inicial contido no arquivo de entrada executa o método obtendo uma trajetória e o manda para a saída como valor e o ponto inicial como chave.
+
+Outra particularidade está na passagem de argumentos. Como o campo vetorial e o tamanho do passo não devem ser operados pelo map, mas são necessários, estes foram passados como parametros da configuração do Job e são recuperados no Map através do método configure que foi sobrescrito.
+
+\section{Reduce}
+Classe para simplesmente transformar as trajetorias novamente em texto que será impresso na saída.
+
+\chapter{Analise Hadoop}
+É um arcabouço bastante potente, com diversas possibilidades que simplifica a criação de programas distribuídos. Porém com diversos pontos fracos principalmente na organização:
+
+\begin{itemize}
+  \item Dependente do Java desenvolvido pela Oracle;
+  \item Três versões diferentes disponíveis ao mesmo tempo;
+  \item Boa parte dos tutoriais oficiais não especifíca a versão a que se refere;
+  \item Documentação sobre a configuração do ambiente de desenvolvimento não cobre todo o processo.
+\end{itemize}
+
+Enfim, é uma plataforma muito poderosa para desenvolvimento de aplicações distribuídas, mas que peca na sua documentação e organização. O desenvolvedor acaba tendo de gastar mais tempo configurando o ambiente do que desenvolvendo o software.
+\end{document}
